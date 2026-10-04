@@ -19,6 +19,10 @@ class QuotaTracker(
 ) {
     private var tickCounter = 0
 
+    fun resetTickCounter() {
+        tickCounter = 0
+    }
+
     /**
      * Called on every server tick; burn quota once every 20 ticks (1 second).
      */

@@ -11,6 +11,7 @@ import com.chronosmp.platform.PlatformServer
 import com.chronosmp.systems.BossbarTracker
 import com.chronosmp.systems.RushHourManager
 import com.chronosmp.systems.QuotaTracker
+import com.chronosmp.systems.QuotaSystemState
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -30,6 +31,8 @@ object ChronoSMP {
     private lateinit var happyHourManager: RushHourManager
     private lateinit var bossbarTracker: BossbarTracker
     private lateinit var quotaTracker: QuotaTracker
+    lateinit var quotaSystemState: QuotaSystemState
+        private set
     private lateinit var playerJoinHandler: PlayerJoinHandler
     lateinit var pvpTransferHandler: PvPTransferHandler
     private lateinit var advancementHandler: AdvancementHandler
@@ -51,6 +54,8 @@ object ChronoSMP {
 
         val dataFile = configDir.resolve("player-data.json")
         dataManager = PlayerDataManager(dataFile, LOGGER, configManager.config)
+        quotaSystemState = QuotaSystemState(configDir.resolve("quota-system.state"))
+        quotaSystemState.load()
 
         happyHourManager = RushHourManager()
         happyHourManagerRef = happyHourManager
@@ -60,7 +65,17 @@ object ChronoSMP {
         playerJoinHandler = PlayerJoinHandler(dataManager, bossbarTracker, LOGGER)
         pvpTransferHandler = PvPTransferHandler(dataManager, happyHourManager, configManager.config, LOGGER)
         advancementHandler = AdvancementHandler(dataManager, LOGGER)
-        chronoCommand = ChronoCommand(dataManager, happyHourManager, bossbarTracker, configManager.config, LOGGER)
+        chronoCommand = ChronoCommand(
+            dataManager,
+            happyHourManager,
+            bossbarTracker,
+            configManager.config,
+            LOGGER,
+            quotaSystemState
+        ) { server ->
+            quotaTracker.resetTickCounter()
+            server.players.forEach(::onPlayerJoin)
+        }
 
         LOGGER.info("ChronoSMP initialized successfully!")
     }
@@ -89,7 +104,9 @@ object ChronoSMP {
     }
 
     fun onTick(server: PlatformServer) {
-        quotaTracker.onServerTick(server)
+        if (quotaSystemState.isStarted()) {
+            quotaTracker.onServerTick(server)
+        }
         bossbarTracker.onServerTick(server)
 
         val ticks = autoSaveTickCounter.incrementAndGet()
@@ -101,11 +118,13 @@ object ChronoSMP {
     }
 
     fun onPlayerJoin(player: PlatformPlayer) {
-        playerJoinHandler.onPlayerJoin(player)
+        if (quotaSystemState.isStarted()) {
+            playerJoinHandler.onPlayerJoin(player)
+        }
     }
 
     fun canPlayerJoin(uuid: UUID): Boolean {
-        return dataManager.canJoinWithQuota(uuid)
+        return !quotaSystemState.isStarted() || dataManager.canJoinWithQuota(uuid)
     }
 
     fun onPlayerDisconnect(player: PlatformPlayer) {
@@ -113,10 +132,14 @@ object ChronoSMP {
     }
 
     fun onPlayerKill(killer: PlatformPlayer, victim: PlatformPlayer) {
-        pvpTransferHandler.onPlayerKill(killer, victim)
+        if (quotaSystemState.isStarted()) {
+            pvpTransferHandler.onPlayerKill(killer, victim)
+        }
     }
 
     fun onAdvancementCompleted(player: PlatformPlayer, advancementId: String, advancementType: String?) {
-        advancementHandler.onAdvancementCompleted(player, advancementId, advancementType)
+        if (quotaSystemState.isStarted()) {
+            advancementHandler.onAdvancementCompleted(player, advancementId, advancementType)
+        }
     }
 }

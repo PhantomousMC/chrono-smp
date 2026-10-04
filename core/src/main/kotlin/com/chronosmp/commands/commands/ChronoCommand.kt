@@ -9,6 +9,8 @@ import com.chronosmp.platform.PlatformPlayer
 import com.chronosmp.platform.PlatformServer
 import com.chronosmp.systems.BossbarTracker
 import com.chronosmp.systems.RushHourManager
+import com.chronosmp.systems.QuotaSystemState
+import java.io.IOException
 import org.slf4j.Logger
 
 /** Handles /chrono command logic in a runtime-neutral way. */
@@ -17,7 +19,9 @@ class ChronoCommand(
     private val happyHourManager: RushHourManager,
     private val bossbarTracker: BossbarTracker,
     private var config: ModConfig,
-    private val logger: Logger
+    private val logger: Logger,
+    private val quotaSystemState: QuotaSystemState,
+    private val onSystemStarted: (PlatformServer) -> Unit = {}
 ) {
 
     private fun requirePermission(
@@ -38,8 +42,71 @@ class ChronoCommand(
         permission: String,
         default: PermissionDefault
     ): Boolean = (default == PermissionDefault.OPERATOR &&
-        sender.hasPermission(ChronoPermissions.ADMIN, PermissionDefault.OPERATOR)) ||
+        (sender.hasPermission(ChronoPermissions.ADMIN, PermissionDefault.OPERATOR) ||
+            sender.hasPermission(ChronoPermissions.ADMINS, PermissionDefault.OPERATOR))) ||
         sender.hasPermission(permission, default)
+
+    private fun requireStarted(sender: PlatformCommandSender, allowStoppedQueries: Boolean = false): Boolean {
+        if (quotaSystemState.isStarted() || (allowStoppedQueries && quotaSystemState.hasStarted())) return true
+        sender.sendMessage(
+            if (quotaSystemState.hasStarted()) "§cThe SMP is stopped."
+            else "§cThe SMP didn't start yet."
+        )
+        return false
+    }
+
+    fun executeStart(sender: PlatformCommandSender, server: PlatformServer): Int {
+        if (!requirePermission(sender, ChronoPermissions.START, PermissionDefault.OPERATOR)) return 0
+        if (quotaSystemState.isStarted()) {
+            sender.sendMessage("§eThe SMP has already started.")
+            return 1
+        }
+        return try {
+            quotaSystemState.start()
+            onSystemStarted(server)
+            sender.sendMessage("§aThe SMP has started. Player time depletion is now active.")
+            logger.info("Quota system started by ${sender.name}")
+            1
+        } catch (exception: IOException) {
+            logger.error("Failed to start the quota system", exception)
+            sender.sendMessage("§cFailed to start the SMP. See the server log.")
+            0
+        }
+    }
+
+    fun executeStop(sender: PlatformCommandSender): Int {
+        if (!requirePermission(sender, ChronoPermissions.STOP, PermissionDefault.OPERATOR)) return 0
+        if (!quotaSystemState.isStarted()) {
+            sender.sendMessage("§eThe SMP has already stopped.")
+            return 1
+        }
+        return try {
+            quotaSystemState.stop()
+            sender.sendMessage("§cThe SMP has stopped. All quota changes are paused.")
+            logger.info("Quota system stopped by ${sender.name}")
+            1
+        } catch (exception: IOException) {
+            logger.error("Failed to stop the quota system", exception)
+            sender.sendMessage("§cFailed to stop the SMP. See the server log.")
+            0
+        }
+    }
+
+    fun executeReset(sender: PlatformCommandSender): Int {
+        if (!requirePermission(sender, ChronoPermissions.RESET, PermissionDefault.OPERATOR)) return 0
+        return try {
+            quotaSystemState.stop()
+            dataManager.resetAll()
+            quotaSystemState.reset()
+            sender.sendMessage("§aThe SMP has been stopped and all player Chrono data has been reset.")
+            logger.info("Quota system reset by ${sender.name}")
+            1
+        } catch (exception: IOException) {
+            logger.error("Failed to reset the quota system", exception)
+            sender.sendMessage("§cFailed to reset the SMP data. See the server log.")
+            0
+        }
+    }
 
     /** Display only commands the sender is currently permitted to use. */
     fun executeHelp(sender: PlatformCommandSender): Int {
@@ -55,7 +122,10 @@ class ChronoCommand(
             Triple(ChronoPermissions.SET, PermissionDefault.OPERATOR, "/chrono set <player> <amount> — Set quota; suffixes s/m/h/d are supported, bare amounts mean minutes."),
             Triple(ChronoPermissions.RUSHHOUR_START, PermissionDefault.OPERATOR, "/chrono rushhour start — Start rush hour."),
             Triple(ChronoPermissions.RUSHHOUR_END, PermissionDefault.OPERATOR, "/chrono rushhour end — End rush hour."),
-            Triple(ChronoPermissions.RELOAD, PermissionDefault.OPERATOR, "/chrono reload — Reload configuration from config.yml.")
+            Triple(ChronoPermissions.RELOAD, PermissionDefault.OPERATOR, "/chrono reload — Reload configuration from config.yml."),
+            Triple(ChronoPermissions.START, PermissionDefault.OPERATOR, "/chrono start — Start quota depletion."),
+            Triple(ChronoPermissions.STOP, PermissionDefault.OPERATOR, "/chrono stop — Pause all quota changes."),
+            Triple(ChronoPermissions.RESET, PermissionDefault.OPERATOR, "/chrono reset — Stop the SMP and wipe all player quota data.")
         )
 
         sender.sendMessage("§6Chrono commands:")
@@ -85,6 +155,7 @@ class ChronoCommand(
     /** Execute the transfer subcommand */
     fun executeTransfer(sender: PlatformPlayer, targetName: String, server: PlatformServer, amountSeconds: Long): Int {
         if (!requirePermission(sender, ChronoPermissions.TRANSFER, PermissionDefault.EVERYONE)) return 0
+        if (!requireStarted(sender)) return 0
         if (amountSeconds <= 0) {
             sender.sendMessage("§cTransfer amount must be greater than zero.")
             return 0
@@ -146,6 +217,7 @@ class ChronoCommand(
 
     fun executeList(executor: PlatformCommandSender, server: PlatformServer, scope: String = "all"): Int {
         if (!requirePermission(executor, ChronoPermissions.LIST, PermissionDefault.EVERYONE)) return 0
+        if (!requireStarted(executor, allowStoppedQueries = true)) return 0
 
         val allPlayers = dataManager.getAll()
 
@@ -181,6 +253,7 @@ class ChronoCommand(
 
     fun executeBalance(executor: PlatformPlayer, target: PlatformPlayer): Int {
         if (!requirePermission(executor, ChronoPermissions.BALANCE, PermissionDefault.EVERYONE)) return 0
+        if (!requireStarted(executor, allowStoppedQueries = true)) return 0
 
         val playerData = dataManager.get(target.uuid)
 
@@ -199,8 +272,16 @@ class ChronoCommand(
         return 1
     }
 
+    fun executeConsoleBalance(executor: PlatformCommandSender): Int {
+        if (!requirePermission(executor, ChronoPermissions.BALANCE, PermissionDefault.EVERYONE)) return 0
+        if (!requireStarted(executor, allowStoppedQueries = true)) return 0
+        executor.sendMessage("The console doesn't have a balance, add a players username to check their time")
+        return 1
+    }
+
     fun executeBalanceByName(executor: PlatformCommandSender, targetName: String, server: PlatformServer): Int {
         if (!requirePermission(executor, ChronoPermissions.BALANCE, PermissionDefault.EVERYONE)) return 0
+        if (!requireStarted(executor, allowStoppedQueries = true)) return 0
 
         val (_, targetData) = dataManager.resolvePlayer(targetName, server)
 
@@ -216,6 +297,7 @@ class ChronoCommand(
 
     fun executeSet(executor: PlatformCommandSender, targetName: String, server: PlatformServer, amountSeconds: Long): Int {
         if (!requirePermission(executor, ChronoPermissions.SET, PermissionDefault.OPERATOR)) return 0
+        if (!requireStarted(executor)) return 0
 
         if (amountSeconds < 0) {
             executor.sendMessage("§cTime must be 0 or greater seconds.")
@@ -248,6 +330,7 @@ class ChronoCommand(
 
     fun executeAdd(executor: PlatformCommandSender, targetName: String, server: PlatformServer, amountSeconds: Long): Int {
         if (!requirePermission(executor, ChronoPermissions.ADD, PermissionDefault.OPERATOR)) return 0
+        if (!requireStarted(executor)) return 0
         if (amountSeconds <= 0) {
             executor.sendMessage("§cTime amount must be greater than zero.")
             return 0
@@ -288,6 +371,7 @@ class ChronoCommand(
 
     fun executeRemove(executor: PlatformCommandSender, targetName: String, server: PlatformServer, amountSeconds: Long): Int {
         if (!requirePermission(executor, ChronoPermissions.REMOVE, PermissionDefault.OPERATOR)) return 0
+        if (!requireStarted(executor)) return 0
         if (amountSeconds <= 0) {
             executor.sendMessage("§cTime amount must be greater than zero.")
             return 0
