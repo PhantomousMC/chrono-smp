@@ -13,6 +13,15 @@ permissions:
   chrono.use.reload:
     description: Reload Chrono configuration
     default: op
+  chrono.use.start:
+    description: Start the Chrono SMP quota system
+    default: op
+  chrono.use.stop:
+    description: Stop the Chrono SMP quota system
+    default: op
+  chrono.use.reset:
+    description: Stop the Chrono SMP and wipe player quota data
+    default: op
   chrono.use.balance:
     description: View player quota balances
     default: true
@@ -47,3 +56,11 @@ permissions:
       chrono.use.set: true
       chrono.use.rushhour.start: true
       chrono.use.rushhour.end: true
+      chrono.use.start: true
+      chrono.use.stop: true
+      chrono.use.reset: true
+  chrono.admins:
+    description: Alias for the Chrono admin permission group
+    default: op
+    children:
+      chrono.admin: true

@@ -97,13 +97,21 @@ class PaperChronoPlugin : JavaPlugin(), Listener {
         if (args.isEmpty()) return handled { ChronoSMP.chronoCommand.executeHelp(executor) }
 
         return when (args[0].lowercase()) {
+            "start" -> if (args.size == 1) {
+                handled { ChronoSMP.chronoCommand.executeStart(executor, server) }
+            } else handled { ChronoSMP.chronoCommand.executeHelp(executor) }
+            "stop" -> if (args.size == 1) {
+                handled { ChronoSMP.chronoCommand.executeStop(executor) }
+            } else handled { ChronoSMP.chronoCommand.executeHelp(executor) }
+            "reset" -> if (args.size == 1) {
+                handled { ChronoSMP.chronoCommand.executeReset(executor) }
+            } else handled { ChronoSMP.chronoCommand.executeHelp(executor) }
             "balance" -> {
                 when (args.size) {
                     1 -> if (player != null) {
                         handled { ChronoSMP.chronoCommand.executeBalance(player, player) }
                     } else {
-                        sender.sendMessage("The console doesn't have a balance, add a players username to check their time")
-                        true
+                        handled { ChronoSMP.chronoCommand.executeConsoleBalance(executor) }
                     }
                     2 -> handled { ChronoSMP.chronoCommand.executeBalanceByName(executor, args[1], server) }
                     else -> handled { ChronoSMP.chronoCommand.executeHelp(executor) }
@@ -189,7 +197,7 @@ class PaperChronoPlugin : JavaPlugin(), Listener {
 
         val query = args.lastOrNull()?.lowercase() ?: ""
         val suggestions = when (args.size) {
-            1 -> listOf("balance", "list", "transfer", "add", "remove", "set", "rushhour", "reload", "help")
+            1 -> listOf("start", "stop", "reset", "balance", "list", "transfer", "add", "remove", "set", "rushhour", "reload", "help")
             2 -> when (args[0].lowercase()) {
                 "balance", "transfer", "add", "remove", "set" -> {
                     (Bukkit.getOnlinePlayers().map { it.name } + ChronoSMP.dataManager.getAll().mapNotNull { it.username.ifBlank { null } })

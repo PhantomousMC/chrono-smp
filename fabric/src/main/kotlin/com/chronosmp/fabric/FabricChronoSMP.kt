@@ -70,15 +70,32 @@ object FabricChronoSMP : DedicatedServerModInitializer {
                 ChronoSMP.chronoCommand.executeHelp(commandSender(context.source))
             }
             .then(
+                Commands.literal("start")
+                    .executes { context ->
+                        ChronoSMP.chronoCommand.executeStart(
+                            commandSender(context.source),
+                            FabricPlatformServer(context.source.server)
+                        )
+                    }
+            )
+            .then(
+                Commands.literal("stop")
+                    .executes { context ->
+                        ChronoSMP.chronoCommand.executeStop(commandSender(context.source))
+                    }
+            )
+            .then(
+                Commands.literal("reset")
+                    .executes { context ->
+                        ChronoSMP.chronoCommand.executeReset(commandSender(context.source))
+                    }
+            )
+            .then(
                 Commands.literal("balance")
                     .executes { context ->
                         val player = context.source.entity as? ServerPlayer
                         if (player == null) {
-                            context.source.sendSuccess(
-                                { Component.literal("The console doesn't have a balance, add a players username to check their time") },
-                                false
-                            )
-                            1
+                            ChronoSMP.chronoCommand.executeConsoleBalance(commandSender(context.source))
                         } else {
                             val platformPlayer = FabricPlatformPlayer(player)
                             ChronoSMP.chronoCommand.executeBalance(platformPlayer, platformPlayer)
