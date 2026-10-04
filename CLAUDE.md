@@ -198,6 +198,12 @@ calculation rules are encapsulated in one place.
 - Runs every 20 ticks (1 second)
 - Decrements quota for all online players
 - Disconnects players who run out of quota while online
+- Quota burning runs only while the persisted `QuotaSystemState` is started; `/chrono stop` pauses it.
+
+**QuotaSystemState**:
+- **File**: `core/src/main/kotlin/com/chronosmp/systems/QuotaSystemState.kt`
+- Persists `started` or `stopped` in `quota-system.state` beside `player-data.json`; a missing state file means the SMP has never started.
+- `/chrono stop` pauses quota mutations but preserves the state and player data; `/chrono reset` erases both the player-data contents and lifecycle state.
 
 **Kick Message**: "Your time quota has been depleted! Come back next week for more time."
 
@@ -207,11 +213,11 @@ calculation rules are encapsulated in one place.
 - Plugin metadata declares `ChronoSMP`, API version `1.21`, the `/chrono` command, Bukkit permission nodes with public/operator defaults, and `chrono.admin` children (including reload)
 - On enable, initializes shared logic with Bukkit's plugin data folder, loads player data, registers events and the `/chrono` executor/tab completer, and schedules the shared tick handler every server tick
 - On disable, saves player data
-- `AsyncPlayerPreLoginEvent` calls the shared quota join check. Depleted players are denied unless an allotment is due; unknown players and eligible players may join
+- `AsyncPlayerPreLoginEvent` calls the shared quota join check only while started. Before start or while stopped, players may join regardless of stored quota.
 - `PlayerJoinEvent` and `PlayerQuitEvent` delegate join/disconnect behavior to the shared handlers
 - `PlayerDeathEvent` delegates player kills to the shared PvP transfer handler when Bukkit provides a killer
 - `PlayerAdvancementDoneEvent` maps TASK, GOAL, and CHALLENGE frames to shared advancement rewards; other frames are ignored
-- `/chrono help` and `/chrono reload` are available through the shared command handler to players and console; reload requires `chrono.use.reload`
+- `/chrono help`, `/chrono reload`, and the lifecycle commands are available through the shared command handler to players and console; lifecycle commands require their admin permissions.
 - Paper players are checked through Bukkit named permissions; the shared command handler checks each action node and the `chrono.admin` umbrella
 - Console may run every command except `transfer`; bare `/chrono balance` prints the console-specific message, while `/chrono balance <player>` prints the target balance
 - Invalid subcommands or malformed arguments display the permission-filtered help output; `plugin.yml` uses `/chrono help` as its fallback usage to avoid listing hidden admin commands
@@ -378,11 +384,14 @@ sealed class RushHourState {
 ### 9. ChronoCommand (Shared Commands)
 **File**: `core/src/main/kotlin/com/chronosmp/commands/commands/ChronoCommand.kt`
 
-**Dependencies**: `PlayerDataManager`, `RushHourManager`, `BossbarTracker`, `ModConfig`, `Logger`
+**Dependencies**: `PlayerDataManager`, `RushHourManager`, `BossbarTracker`, `ModConfig`, `QuotaSystemState`, `Logger`
 
 **Tab Completion**: Built-in suggestion provider lists both online and offline players (by stored username)
 
 **Commands**:
+- `/chrono start` - OP/admin-only; persistently starts quota gameplay and initializes any players already online
+- `/chrono stop` - OP/admin-only; pauses depletion, rewards, and quota transfers while preserving player data
+- `/chrono reset` - OP/admin-only; stops quota gameplay and wipes player data from `player-data.json`
 - `/chrono balance` - Show own remaining quota
 - `/chrono balance <player>` - Show another player's remaining quota (supports offline by name, tab-complete)
 - `/chrono list [all|online]` - List players' quotas alphabetically; defaults to `all`. Offline players display by stored username (or a UUID prefix); 0-quota entries are red (§c)
@@ -435,7 +444,9 @@ sealed class RushHourState {
   - Requires `chrono.use.rushhour.end`; defaults to operators
 - `/chrono reload` - Reload `config.yml` without restarting the server/plugin/mod and apply the new settings to live quota, PvP, advancement, command, and glowing behavior. Invalid YAML follows the config manager's existing fallback-to-defaults behavior.
 
-**Permission defaults**: `chrono.use.balance`, `chrono.use.list`, `chrono.use.transfer`, and `chrono.use.help` default to everyone. Admin action nodes, including `chrono.use.reload`, default to operators. `chrono.admin` defaults to operators and grants only admin action nodes; it does not grant public nodes. Fabric uses Fabric Permissions API fallback defaults when no compatible permission manager is installed, so operator senders receive admin help entries and regular senders receive only public entries.
+Before the first `/chrono start`, `/chrono list`, `/chrono balance`, and `/chrono transfer` report `The SMP didn't start yet.` While stopped, balance/list remain available but all quota changes (including join allotments, advancement rewards, PvP, transfers, admin add/remove/set, and playtime depletion) are paused. The lifecycle state persists across restarts.
+
+**Permission defaults**: `chrono.use.balance`, `chrono.use.list`, `chrono.use.transfer`, and `chrono.use.help` default to everyone. Lifecycle and other admin action nodes default to operators. `chrono.admin` and the `chrono.admins` alias default to operators and grant only admin action nodes; they do not grant public nodes. Fabric uses Fabric Permissions API fallback defaults when no compatible permission manager is installed, so operator senders receive admin help entries and regular senders receive only public entries.
 
 **Platform behavior**: Paper and Fabric expose the full command set and accept console senders for balance-by-name, list, admin quota actions, and rush-hour actions. Console cannot transfer quota; bare console balance prints `The console doesn't have a balance, add a players username to check their time`. Tab completion includes online and stored offline player names where applicable.
 
@@ -623,8 +634,12 @@ sealed class RushHourState {
 - [ ] `chrono.admin` grants admin action nodes only; public nodes remain independently permission-checked and individual grants and denials are honored
 - [ ] `/chrono help` shows only commands allowed by the sender's effective permissions; regular players see balance, list, transfer, help
 - [ ] `/chrono reload` is operator-only and rereads config.yml, applying updated allotment, PvP multiplier, and glowing settings without restart
+- [ ] Before `/chrono start`, all quota interactions are paused and player balance/list/transfer show the pre-start error
+- [ ] `/chrono start`, `/chrono stop`, and `/chrono reset` are OP/`chrono.admin`/`chrono.admins` only
+- [ ] `/chrono stop` pauses all quota changes without deleting player records; `/chrono start` resumes them
+- [ ] `/chrono reset` stops the system and empties player-data.json; started state survives server restart
 - [ ] Invalid root command or malformed arguments (for example `/chrono money`) show permission-filtered help
-- [ ] Fabric command tree includes balance, list, transfer, add, remove, set, rushhour start/end, reload, and help
+- [ ] Fabric command tree includes start, stop, reset, balance, list, transfer, add, remove, set, rushhour start/end, reload, and help
 - [ ] Paper player death with a player killer → Shared PvP transfer behavior runs
 - [ ] Paper advancement completion → TASK, GOAL, and CHALLENGE rewards are dispatched; other frames are ignored
 - [ ] Server restart → Data persists
