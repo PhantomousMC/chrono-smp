@@ -2,6 +2,7 @@ package com.chronosmp.commands
 
 object ChronoPermissions {
     const val ADMIN = "chrono.admin"
+    const val ADMINS = "chrono.admins"
     const val HELP = "chrono.use.help"
     const val RELOAD = "chrono.use.reload"
     const val BALANCE = "chrono.use.balance"
@@ -12,4 +13,7 @@ object ChronoPermissions {
     const val SET = "chrono.use.set"
     const val RUSHHOUR_START = "chrono.use.rushhour.start"
     const val RUSHHOUR_END = "chrono.use.rushhour.end"
+    const val START = "chrono.use.start"
+    const val STOP = "chrono.use.stop"
+    const val RESET = "chrono.use.reset"
 }

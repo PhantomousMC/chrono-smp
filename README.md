@@ -14,12 +14,12 @@ Future support for additional loaders is planned, but it is not the active prior
 ## Features
 
 ### ⏰ Time Quota System
-- **Initial Quota**: New players start with a configurable amount of playtime (default: 8 hours)
+- **Initial Quota**: After an administrator runs `/chrono start`, new players receive a configurable amount of playtime (default: 8 hours)
 - **Time Burn**: Quota decreases in real-time while online (1 second per second)
 - **Automatic Kick**: Players are kicked when their quota reaches zero
 
 ### 📅 Periodic Allotment
-- Players receive additional playtime at regular intervals (default: 2 hours every day)
+- Once `/chrono start` is active, players receive additional playtime at regular intervals (default: 2 hours every day)
 - Granted automatically on login after the configured period has elapsed
 - Players are notified on login when their next allotment is due, using a human-readable countdown like "2 days, 4 hours, 30 minutes"
 - Prevents stockpiling - only active players benefit
@@ -105,20 +105,26 @@ Additional loaders may be added later, but they are not part of the active suppo
 ## How It Works
 
 ### For Players
-1. **First Join**: You receive initial playtime quota (default: 8 hours)
-2. **Playing**: Your quota burns at 1:1 ratio with real time
-3. **Periodic Bonus**: After the allotment period, log in to receive bonus time (default: +8 hours every 7 days)
-4. **PvP**: Defeating another player grants you quota from their pool (default: +1 hour)
-5. **Voluntary Transfer**: Share quota with friends using `/chrono transfer <player> <amount>` — works even if they're offline; bare amounts are minutes, and `s`, `m`, `h`, or `d` suffixes select seconds, minutes, hours, or days
-6. **Offline Messages**: If you receive transfers or admin adjustments while offline, you'll see messages when you log back in
-7. **Revived**: If an admin or another player gives you quota when you had 0 (were depleted), you'll see a special revive message
-8. **Quota Depleted**: You'll be kicked and must wait for the next allotment period or ask an admin to revive you
+1. **SMP Start**: An administrator runs `/chrono start` to enable quota gameplay
+2. **First Join**: You receive initial playtime quota (default: 8 hours)
+3. **Playing**: Your quota burns at 1:1 ratio with real time
+4. **Periodic Bonus**: After the allotment period, log in to receive bonus time (default: +8 hours every 7 days)
+5. **PvP**: Defeating another player grants you quota from their pool (default: +1 hour)
+6. **Voluntary Transfer**: Share quota with friends using `/chrono transfer <player> <amount>` — works even if they're offline; bare amounts are minutes, and `s`, `m`, `h`, or `d` suffixes select seconds, minutes, hours, or days
+7. **Offline Messages**: If you receive transfers or admin adjustments while offline, you'll see messages when you log back in
+8. **Revived**: If an admin or another player gives you quota when you had 0 (were depleted), you'll see a special revive message
+9. **Quota Depleted**: You'll be kicked and must wait for the next allotment period or ask an admin to revive you
 
 **Note**: Default values shown above are configurable by server admins.
 
 ### Commands
 
 **Tab Completion**: All commands support tab-completion, showing both online and offline player names.
+
+**SMP lifecycle (OP / `chrono.admin` or `chrono.admins` only)**:
+- `/chrono start` - Start quota management. New and returning players can receive quota and playtime depletion, rewards, and transfers become active. The started state survives server restarts.
+- `/chrono stop` - Pause all quota changes without deleting player data. Balance and list remain readable; transfers and quota mutations are paused.
+- `/chrono reset` - Stop quota management and erase all player records from `player-data.json`.
 
 - `/chrono balance` - Check your own remaining quota
 - `/chrono balance <player>` - Check another player's remaining quota, including offline players by name
@@ -166,12 +172,14 @@ Additional loaders may be added later, but they are not part of the active suppo
 
 ### Permissions and Console
 - `chrono.use.balance`, `chrono.use.list`, and `chrono.use.transfer` default to everyone and can be changed by a permission manager.
-- Admin action nodes default to operators and can be assigned individually. `chrono.admin` defaults to operators and grants admin action nodes only; it does not imply public permissions such as balance, list, transfer, or help.
+- Admin action nodes, including `chrono.use.start`, `chrono.use.stop`, and `chrono.use.reset`, default to operators and can be assigned individually. `chrono.admin` and its alias `chrono.admins` default to operators and grant admin action nodes only; they do not imply public permissions such as balance, list, transfer, or help.
 - Paper uses Bukkit permissions. Fabric includes Fabric Permissions API 0.6.1; install a compatible permission manager such as LuckPerms to manage named grants. Without a provider, public commands default to everyone and admin commands to operators.
 - The server console can run all commands except `/chrono transfer`. Console `/chrono balance` prints: `The console doesn't have a balance, add a players username to check their time`; use `/chrono balance <player>` to view a balance.
+- Until `/chrono start` is run, quota gameplay is inactive: player quota commands and all quota-changing actions return `The SMP didn't start yet.` While stopped, joins, playtime depletion, periodic/advancement rewards, PvP transfers, voluntary transfers, and admin add/remove/set are paused. Balance and list remain available after the SMP has previously been started.
 
 ### Example Timeline
 ```
+Day 0:  Admin runs `/chrono start`
 Day 0:  Join server → 8 hours quota
 Day 0:  Complete "Stone Age" advancement (task) → +15 min → 8h 15m
 Day 0:  Complete "Into Fire" advancement (challenge) → +1h → 9h 15m

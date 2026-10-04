@@ -70,6 +70,14 @@ class PlayerDataManager(
         }
     }
 
+    /** Remove every stored player record and persist an empty player-data file. */
+    fun resetAll() {
+        Files.createDirectories(dataFile.parent)
+        Files.writeString(dataFile, "{}")
+        playerData.clear()
+        logger.info("Reset all player quota data")
+    }
+
     /** Get or create player data */
     fun getOrCreate(uuid: UUID): PlayerTimeData {
         return playerData.getOrPut(uuid) {
