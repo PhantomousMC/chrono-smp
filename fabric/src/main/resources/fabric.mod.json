@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "chrono-smp",
+  "version": "${version}",
+  "name": "ChronoSMP",
+  "description": "A server-side Fabric mod",
+  "authors": ["Your Name"],
+  "contact": {
+    "homepage": "https://github.com/yourusername/chrono-smp",
+    "sources": "https://github.com/yourusername/chrono-smp"
+  },
+  "license": "MIT",
+  "icon": "assets/chrono-smp/icon.png",
+  "environment": "server",
+  "entrypoints": {
+    "server": [
+      {
+        "adapter": "kotlin",
+        "value": "com.chronosmp.fabric.FabricChronoSMP"
+      }
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.2",
+    "fabric-api": "*",
+    "fabric-permissions-api-v0": "*",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-language-kotlin": ">=1.12.0"
+  },
+  "suggests": {},
+  "mixins": [
+    "chrono-smp.mixins.json"
+  ]
+}

@@ -9,4 +9,7 @@ pluginManagement {
     }
 }
 
-rootProject.name = "chrono-mod"
+rootProject.name = "chrono-smp"
+include("core")
+include("fabric")
+include("paper")

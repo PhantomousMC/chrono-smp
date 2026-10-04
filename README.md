@@ -1,7 +1,15 @@
-# Chrono Mod
+# Chrono SMP
 
-A server-side Minecraft Fabric mod that implements a time quota system. Players receive limited playtime that burns
+A server-side Minecraft time quota system for Fabric and Paper (1.21.11). Players receive limited playtime that burns
 while they're online, encouraging strategic play and creating a fair, time-limited gaming experience.
+
+## Current Support
+
+This project currently targets the following platforms:
+- Fabric 1.21.11
+- Paper 1.21.11
+
+Future support for additional loaders is planned, but it is not the active priority. The current build and release scope is intentionally limited to Fabric and Paper to keep development focused.
 
 ## Features
 
@@ -11,7 +19,7 @@ while they're online, encouraging strategic play and creating a fair, time-limit
 - **Automatic Kick**: Players are kicked when their quota reaches zero
 
 ### 📅 Periodic Allotment
-- Players receive additional playtime at regular intervals (default: 8 hours every 7 days)
+- Players receive additional playtime at regular intervals (default: 2 hours every day)
 - Granted automatically on login after the configured period has elapsed
 - Players are notified on login when their next allotment is due, using a human-readable countdown like "2 days, 4 hours, 30 minutes"
 - Prevents stockpiling - only active players benefit
@@ -31,7 +39,7 @@ while they're online, encouraging strategic play and creating a fair, time-limit
 - Player quotas automatically saved every 5 minutes
 - Manual save on player disconnect and server shutdown
 - Survives server restarts and crashes
-- Stored in `config/chrono-mod/player-data.json`
+- Stored in `config/chrono-smp/player-data.json`
 
 ### 🏆 Advancement Rewards
 - Completing advancements grants bonus quota time
@@ -42,17 +50,18 @@ while they're online, encouraging strategic play and creating a fair, time-limit
 - Root and silent advancements (e.g. recipe unlocks) are excluded
 - Each advancement can only grant time once per session
 
-### 🎊 Happy Hour Events
-- **Admin-Initiated Time Windows**: Server admins can activate happy hours using commands
-- **No Quota Burn**: Players' quota doesn't burn during happy hour
+### 🎊 Rush Hour Events
+- **Admin-Initiated Time Windows**: Server admins can activate rush hours using commands
+- **No Quota Burn**: Players' quota doesn't burn during rush hour
+- **Glowing Effect**: Players glow every 10 seconds during rush hour by default; configure with `RUSHHOUR_GLOWING`
 - **Enhanced PvP Transfers**: PvP kills transfer multiplied quota (default: 2x, configurable)
-- **Live Countdown**: All players see persistent countdown via action bar: `▶ Happy Hour: 4:23 remaining ▓▓▓▓▓▒░░░░`
+- **Live Countdown**: All players see persistent countdown via action bar: `▶ Rush Hour: 4:23 remaining ▓▓▓▓▓▒░░░░`
 - **Smooth Updates**: Countdown updates every 1 second with smooth visual progress (not 10-second intervals)
 - **Visual Progress Bar**: Unicode block characters (▓ = remaining, ░ = expired) drain visually as time passes
 - **Urgency Indicator**: Countdown turns red (§c) with 5 seconds or less remaining to alert players
-- **Fullscreen Announcement**: Title + subtitle broadcast to all players when happy hour starts
-- **Late Join Support**: Players joining during happy hour automatically added to active countdown display
-- **Single Happy Hour**: Starting a new happy hour replaces any existing one
+- **Fullscreen Announcement**: Title + subtitle broadcast to all players when rush hour starts
+- **Late Join Support**: Players joining during rush hour automatically added to active countdown display
+- **Single Rush Hour**: Starting a new rush hour replaces any existing one
 
 ### 🔄 Offline Player Support
 - **Persistent Notifications**: Messages queued for offline players are persisted and survive server restarts
@@ -67,17 +76,31 @@ while they're online, encouraging strategic play and creating a fair, time-limit
 
 ### Requirements
 - Minecraft Server 1.21.11
-- Fabric Loader 0.18.2+
+- Fabric Loader 0.18.2+ for the Fabric build
+- Paper 1.21.11 for the Paper build
 - Java 21 or higher
 
-### Steps
+### Fabric Setup
 1. Install [Fabric Loader](https://fabricmc.net/use/) on your Minecraft 1.21.11 server
 2. Download required dependencies:
    - [Fabric API 0.139.4+1.21.11](https://modrinth.com/mod/fabric-api)
    - [Fabric Language Kotlin 1.13.9+](https://modrinth.com/mod/fabric-language-kotlin)
-3. Download `chrono-mod-0.1.0.jar` from releases
+3. Download the Fabric release artifact from releases
 4. Place all JARs in your server's `mods/` folder
 5. Start the server
+
+### Paper Setup
+1. Install Paper 1.21.11 on your server
+2. Download the Paper release artifact from releases
+3. Place the plugin JAR in your server's `plugins/` folder
+4. Start the server
+
+### Release Scope
+Current builds are produced for:
+- Fabric mod jar
+- Paper plugin jar
+
+Additional loaders may be added later, but they are not part of the active support target right now.
 
 ## How It Works
 
@@ -86,7 +109,7 @@ while they're online, encouraging strategic play and creating a fair, time-limit
 2. **Playing**: Your quota burns at 1:1 ratio with real time
 3. **Periodic Bonus**: After the allotment period, log in to receive bonus time (default: +8 hours every 7 days)
 4. **PvP**: Defeating another player grants you quota from their pool (default: +1 hour)
-5. **Voluntary Transfer**: Share quota with friends using `/chrono transfer <player> <minutes>` — works even if they're offline
+5. **Voluntary Transfer**: Share quota with friends using `/chrono transfer <player> <amount>` — works even if they're offline; bare amounts are minutes, and `s`, `m`, `h`, or `d` suffixes select seconds, minutes, hours, or days
 6. **Offline Messages**: If you receive transfers or admin adjustments while offline, you'll see messages when you log back in
 7. **Revived**: If an admin or another player gives you quota when you had 0 (were depleted), you'll see a special revive message
 8. **Quota Depleted**: You'll be kicked and must wait for the next allotment period or ask an admin to revive you
@@ -98,11 +121,11 @@ while they're online, encouraging strategic play and creating a fair, time-limit
 **Tab Completion**: All commands support tab-completion, showing both online and offline player names.
 
 - `/chrono balance` - Check your own remaining quota
-- `/chrono balance <player>` - Check another player's remaining quota (supports offline players by name)
-- `/chrono list` - Show all players' remaining quota sorted alphabetically
+- `/chrono balance <player>` - Check another player's remaining quota, including offline players by name
+- `/chrono list [all|online]` - Show quota balances sorted alphabetically; defaults to all players
   - Offline players shown by stored username instead of UUID
   - Players with 0 quota displayed in red (§c) to show they are depleted
-- `/chrono transfer <player> <minutes>` - Transfer quota to another player (online or offline)
+- `/chrono transfer <player> <amount>` - Transfer quota to another player (online or offline); bare numbers mean minutes, with `s`, `m`, `h`, and `d` suffixes available
   - Example: `/chrono transfer Steve 30` transfers 30 minutes to Steve
   - **Offline Transfer**: If Steve is offline, a notification is queued and delivered on their next login
   - **Revive Feature**: If transferring to a player with 0 quota (reviving them), they'll see a special revive message on login
@@ -111,39 +134,49 @@ while they're online, encouraging strategic play and creating a fair, time-limit
   - Requires sufficient quota in your account
 
 **Admin Commands** (OP-level only):
-- `/chrono add <player> <minutes>` - Grant time to an online player
+**Admin Commands** (individual nodes default to operators):
+- `/chrono add <player> <amount>` - Grant time to an online or stored offline player; bare numbers mean minutes, with `s`, `m`, `h`, and `d` suffixes available
   - Example: `/chrono add Steve 60` grants 60 minutes to Steve
   - Shows before/after quota totals to the admin
   - Minimum: 1 minute
-  - Requires operator status (via ops.json)
+  - Requires `chrono.use.add` (default: operators)
 
-- `/chrono remove <player> <minutes>` - Remove time from an online player
+- `/chrono remove <player> <amount>` - Remove time from an online or stored offline player; bare numbers mean minutes, with `s`, `m`, `h`, and `d` suffixes available
   - Example: `/chrono remove Steve 30` removes 30 minutes from Steve
   - Validates player has sufficient quota before removal
   - Shows before/after quota totals to the admin
   - Minimum: 1 minute
-  - Requires operator status (via ops.json)
+  - Requires `chrono.use.remove` (default: operators)
 
-- `/chrono happyhour start <minutes>` - Start a happy hour event (Operators only)
-  - Example: `/chrono happyhour start 60` starts a 60-minute happy hour
+- `/chrono set <player> <amount>` - Set an online or stored offline player's quota to zero or more, with bare numbers in minutes and `s`, `m`, `h`, or `d` suffixes
+  - Requires `chrono.use.set` (default: operators)
+
+- `/chrono rushhour start <minutes>` - Start a rush hour event
+  - Example: `/chrono rushhour start 60` starts a 60-minute rush hour
   - Broadcasts fullscreen title announcement to all players
   - Players don't burn quota during this time
   - PvP transfers are multiplied (default: 2x)
   - Minimum: 1 minute
-  - Replaces any existing happy hour
-  - Error message if player is not an operator
-- `/chrono happyhour end` - Immediately end the current happy hour (Operators only)
+  - Replaces any existing rush hour
+  - Requires `chrono.use.rushhour.start` (default: operators)
+- `/chrono rushhour end` - Immediately end the current rush hour
   - Announces end to all players
   - Quota burning resumes for all players
-  - Error message if player is not an operator
+  - Requires `chrono.use.rushhour.end` (default: operators)
+
+### Permissions and Console
+- `chrono.use.balance`, `chrono.use.list`, and `chrono.use.transfer` default to everyone and can be changed by a permission manager.
+- Admin action nodes default to operators and can be assigned individually. `chrono.admin` defaults to operators and grants admin action nodes only; it does not imply public permissions such as balance, list, transfer, or help.
+- Paper uses Bukkit permissions. Fabric includes Fabric Permissions API 0.6.1; install a compatible permission manager such as LuckPerms to manage named grants. Without a provider, public commands default to everyone and admin commands to operators.
+- The server console can run all commands except `/chrono transfer`. Console `/chrono balance` prints: `The console doesn't have a balance, add a players username to check their time`; use `/chrono balance <player>` to view a balance.
 
 ### Example Timeline
 ```
 Day 0:  Join server → 8 hours quota
 Day 0:  Complete "Stone Age" advancement (task) → +15 min → 8h 15m
 Day 0:  Complete "Into Fire" advancement (challenge) → +1h → 9h 15m
-Day 0:  Admin starts happy hour for 30 min (quota frozen, PvP 2x)
-Day 0:  Kill player during happy hour → +2h (multiplied) → 11h 15m remaining
+Day 0:  Admin starts rush hour for 30 min (quota frozen, PvP 2x)
+Day 0:  Kill player during rush hour → +2h (multiplied) → 11h 15m remaining
 Day 1:  Play 2 hours → 9h 15m remaining
 Day 3:  Play 3 hours → 6h 15m remaining
 Day 5:  Kill player (normal) → 7h 15m remaining (+1 from PvP)
@@ -160,13 +193,13 @@ Day 7:  Login → 14h 15m remaining (+8 weekly allotment, had 6h 15m)
 ### Building
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/chrono-mod.git
-cd chrono-mod
+git clone https://github.com/yourusername/chrono-smp.git
+cd chrono-smp
 
 # Build the mod
 ./gradlew build
 
-# Output: build/libs/chrono-mod-0.1.0.jar
+# Output: build/libs/chrono-smp-0.1.0.jar
 ```
 
 ### Development Server
@@ -176,57 +209,58 @@ cd chrono-mod
 
 ### Project Structure
 ```
-src/main/kotlin/com/chronomod/
-├── ChronoMod.kt              # Main entry point
+src/main/kotlin/com/chronosmp/
+├── ChronoSMP.kt              # Main entry point
 ├── commands/                 # Player commands (/chrono)
 ├── config/                   # Configuration management
 ├── data/                     # Data models & persistence
 ├── systems/                  # Core game systems
 ├── events/                   # Event handlers
-src/main/java/com/chronomod/
+src/main/java/com/chronosmp/
 └── mixin/                    # Minecraft mixins
 ```
 
 ## Configuration
 
-The mod's time quota parameters can be configured via `config/chrono-mod/config.json`. The file is automatically created
+The mod's time quota parameters can be configured via `config/chrono-smp/config.yml`. The file is automatically created
 with default values on first run.
 
 ### Configuration File
-Location: `config/chrono-mod/config.json`
+Location: `config/chrono-smp/config.yml` on Fabric; `config.yml` in the plugin data folder on Paper.
 
-```json
-{
-  "initialQuotaSeconds": 28800,
-  "periodicAllotmentSeconds": 28800,
-  "pvpTransferSeconds": 3600,
-  "allotmentPeriodLength": 604800,
-  "advancementTaskSeconds": 900,
-  "advancementGoalSeconds": 1800,
-  "advancementChallengeSeconds": 3600,
-  "pvpTransferMultiplier": 2.0
-}
+```yaml
+STARTING_TIME: 28800
+RECEIVED_TIME: 7200
+TIME_RECEIVE_DURATION: 86400
+KILL_TRANSFER_AMOUNT: 3600
+RUSHHOUR_KILL_MULTIPLIER: 2.0
+RUSHHOUR_GLOWING: true
+ADVANCEMENT_TASK: 900
+ADVANCEMENT_GOAL: 1800
+ADVANCEMENT_CHALLENGE: 3600
 ```
 
 ### Configuration Parameters
-- **initialQuotaSeconds**: Quota granted to new players on first join (default: 28,800 = 8 hours)
-- **periodicAllotmentSeconds**: Quota granted at each allotment period (default: 28,800 = 8 hours)
-- **pvpTransferSeconds**: Quota transferred on PvP kills (default: 3,600 = 1 hour)
-- **allotmentPeriodLength**: Time between allotments in seconds (default: 604,800 = 7 days)
-- **advancementTaskSeconds**: Quota granted for task advancements (default: 900 = 15 minutes)
-- **advancementGoalSeconds**: Quota granted for goal advancements (default: 1,800 = 30 minutes)
-- **advancementChallengeSeconds**: Quota granted for challenge advancements (default: 3,600 = 1 hour)
-- **pvpTransferMultiplier**: Multiplier for PvP transfers during happy hour (default: 2.0)
-- **Auto-save Interval**: 5 minutes (hardcoded in ChronoMod.kt)
+- **STARTING_TIME**: New-player quota in seconds (default: 28,800 = 8 hours)
+- **RECEIVED_TIME**: Periodic allotment in seconds (default: 7,200 = 2 hours)
+- **TIME_RECEIVE_DURATION**: Time between allotments in seconds (default: 86,400 = 1 day)
+- **KILL_TRANSFER_AMOUNT**: PvP quota transfer in seconds (default: 3,600 = 1 hour)
+- **RUSHHOUR_KILL_MULTIPLIER**: Rush hour PvP multiplier (default: 2.0)
+- **RUSHHOUR_GLOWING**: Apply the glowing effect to online players during rush hour (default: `true`)
+- **ADVANCEMENT_TASK**: Task advancement reward in seconds (default: 900 = 15 minutes)
+- **ADVANCEMENT_GOAL**: Goal advancement reward in seconds (default: 1,800 = 30 minutes)
+- **ADVANCEMENT_CHALLENGE**: Challenge advancement reward in seconds (default: 3,600 = 1 hour)
+- **Auto-save Interval**: 5 minutes (hardcoded in ChronoSMP.kt)
 
 ### Changing Values
 1. Stop your server
-2. Edit `config/chrono-mod/config.json`
+2. Edit `config/chrono-smp/config.yml` (Fabric) or the plugin's `config.yml` (Paper)
 3. Modify values (all times in seconds, multiplier as decimal)
 4. Start your server
-5. Changes take effect for new quota grants/transfers and happy hour events
+5. Changes take effect for new quota grants/transfers and rush hour events
 
 **Note**: Existing player quotas are not retroactively adjusted when config changes.
+An existing `config.json` is imported to `config.yml` on first startup after upgrading; the old JSON file is retained.
 
 See [CLAUDE.md](CLAUDE.md) for technical documentation.
 
@@ -244,11 +278,11 @@ For detailed technical documentation, see [CLAUDE.md](CLAUDE.md).
 
 ### Players not receiving weekly allotment
 - Check server logs for errors
-- Verify `config/chrono-mod/player-data.json` exists and is readable
+- Verify `config/chrono-smp/player-data.json` exists and is readable
 - Ensure at least 7 days have passed since last allotment
 
 ### Data not persisting
-- Verify `config/chrono-mod/` directory has write permissions
+- Verify `config/chrono-smp/` directory has write permissions
 - Check disk space availability
 - Review server logs for JSON serialization errors
 

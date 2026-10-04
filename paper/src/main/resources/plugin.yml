@@ -1,0 +1,49 @@
+name: ChronoSMP
+version: 1.1.2
+main: com.chronosmp.PaperChronoPlugin
+api-version: '1.21'
+commands:
+  chrono:
+    description: Manage quota and rush hour
+    usage: /chrono help
+permissions:
+  chrono.use.help:
+    description: View available Chrono commands
+    default: true
+  chrono.use.reload:
+    description: Reload Chrono configuration
+    default: op
+  chrono.use.balance:
+    description: View player quota balances
+    default: true
+  chrono.use.list:
+    description: List player quota balances
+    default: true
+  chrono.use.transfer:
+    description: Transfer quota to another player
+    default: true
+  chrono.use.add:
+    description: Add quota to a player
+    default: op
+  chrono.use.remove:
+    description: Remove quota from a player
+    default: op
+  chrono.use.set:
+    description: Set a player's quota
+    default: op
+  chrono.use.rushhour.start:
+    description: Start a rush hour event
+    default: op
+  chrono.use.rushhour.end:
+    description: End a rush hour event
+    default: op
+  chrono.admin:
+    description: Access Chrono admin commands
+    default: op
+    children:
+      chrono.use.reload: true
+      chrono.use.add: true
+      chrono.use.remove: true
+      chrono.use.set: true
+      chrono.use.rushhour.start: true
+      chrono.use.rushhour.end: true
