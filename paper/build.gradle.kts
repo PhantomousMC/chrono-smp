@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm")
     id("com.gradleup.shadow") version "9.0.0"
+    id("xyz.jpenilla.run-paper") version "3.0.2"
 }
 
 dependencies {
@@ -38,5 +39,9 @@ tasks {
 
     build {
         dependsOn(shadowJar)
+    }
+
+    runServer {
+        minecraftVersion(project.property("minecraft_version") as String)
     }
 }
