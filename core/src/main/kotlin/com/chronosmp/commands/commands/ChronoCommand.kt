@@ -74,6 +74,8 @@ class ChronoCommand(
         }
     }
 
+
+
     fun executeStop(sender: PlatformCommandSender): Int {
         if (!requirePermission(sender, ChronoPermissions.STOP, PermissionDefault.OPERATOR)) return 0
         if (!quotaSystemState.isStarted()) {
@@ -117,6 +119,7 @@ class ChronoCommand(
             Triple(ChronoPermissions.LIST, PermissionDefault.EVERYONE, "/chrono list — List player quotas."),
             Triple(ChronoPermissions.TRANSFER, PermissionDefault.EVERYONE, "/chrono transfer <player> <amount> — Transfer quota; suffixes s/m/h/d are supported, bare amounts mean minutes."),
             Triple(ChronoPermissions.HELP, PermissionDefault.EVERYONE, "/chrono help — Show this list."),
+            Triple(ChronoPermissions.BOUNTY, PermissionDefault.EVERYONE, "/chrono start — Start quota depletion."),
             Triple(ChronoPermissions.ADD, PermissionDefault.OPERATOR, "/chrono add <player> <amount> — Add quota; suffixes s/m/h/d are supported, bare amounts mean minutes."),
             Triple(ChronoPermissions.REMOVE, PermissionDefault.OPERATOR, "/chrono remove <player> <amount> — Remove quota; suffixes s/m/h/d are supported, bare amounts mean minutes."),
             Triple(ChronoPermissions.SET, PermissionDefault.OPERATOR, "/chrono set <player> <amount> — Set quota; suffixes s/m/h/d are supported, bare amounts mean minutes."),
@@ -150,6 +153,40 @@ class ChronoCommand(
 
     fun updateConfig(updatedConfig: ModConfig) {
         config = updatedConfig
+    }
+
+    fun executeBounty(sender: PlatformPlayer, targetName : String, server: PlatformServer, amountSeconds: Long): Int {
+        if (!requirePermission(sender, ChronoPermissions.BOUNTY, PermissionDefault.EVERYONE)) return 0
+        sender.sendMessage("§eBounty system in testing!")
+
+        if (amountSeconds <= 0) {
+            sender.sendMessage("§cTransfer amount must be greater than zero.")
+            return 0
+        }
+
+        val (targetPlayer, targetData) = dataManager.resolvePlayer(targetName, server)
+
+        if (targetData == null) {
+            sender.sendMessage("§cPlayer '$targetName' not found.")
+            return 0
+        }
+
+        if (sender.uuid == targetData.uuid) {
+            sender.sendMessage("§cYou cannot transfer quota to yourself.")
+            return 0
+        }
+
+        val senderData = dataManager.getOrCreate(sender.uuid)
+
+        if (senderData.remainingTimeSeconds < amountSeconds) {
+            sender.sendMessage("§cYou don't have enough quota. You have ${senderData.formatRemainingTime()} remaining.")
+            return 0
+        }
+
+        val transferred = senderData.transferQuotaTo(targetData, amountSeconds)
+
+        dataManager.save()
+        return 1
     }
 
     /** Execute the transfer subcommand */

@@ -14,6 +14,7 @@ object ChronoPermissions {
     const val RUSHHOUR_START = "chrono.use.rushhour.start"
     const val RUSHHOUR_END = "chrono.use.rushhour.end"
     const val START = "chrono.use.start"
+    const val BOUNTY = "chrono.use.bounty"
     const val STOP = "chrono.use.stop"
     const val RESET = "chrono.use.reset"
 }

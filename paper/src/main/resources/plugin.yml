@@ -13,6 +13,9 @@ permissions:
   chrono.use.reload:
     description: Reload Chrono configuration
     default: op
+  chrono.use.bounty:
+    description: Add a bounty to a player
+    default: true
   chrono.use.start:
     description: Start the Chrono SMP quota system
     default: op

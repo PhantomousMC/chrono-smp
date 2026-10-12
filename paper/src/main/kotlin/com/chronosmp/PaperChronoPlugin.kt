@@ -100,6 +100,10 @@ class PaperChronoPlugin : JavaPlugin(), Listener {
             "start" -> if (args.size == 1) {
                 handled { ChronoSMP.chronoCommand.executeStart(executor, server) }
             } else handled { ChronoSMP.chronoCommand.executeHelp(executor) }
+            //Work in progress
+            "bounty" -> if (args.size == 1) {
+                handled { ChronoSMP.chronoCommand.executeBounty(executor, server) }
+            } else handled { ChronoSMP.chronoCommand.executeHelp(executor) }
             "stop" -> if (args.size == 1) {
                 handled { ChronoSMP.chronoCommand.executeStop(executor) }
             } else handled { ChronoSMP.chronoCommand.executeHelp(executor) }
@@ -197,9 +201,9 @@ class PaperChronoPlugin : JavaPlugin(), Listener {
 
         val query = args.lastOrNull()?.lowercase() ?: ""
         val suggestions = when (args.size) {
-            1 -> listOf("start", "stop", "reset", "balance", "list", "transfer", "add", "remove", "set", "rushhour", "reload", "help")
+            1 -> listOf("start", "stop", "reset", "balance", "list", "transfer", "add", "remove", "set", "rushhour", "reload", "help", "bounty")
             2 -> when (args[0].lowercase()) {
-                "balance", "transfer", "add", "remove", "set" -> {
+                "balance", "transfer", "add", "remove", "set", "bounty" -> {
                     (Bukkit.getOnlinePlayers().map { it.name } + ChronoSMP.dataManager.getAll().mapNotNull { it.username.ifBlank { null } })
                         .distinct()
                 }

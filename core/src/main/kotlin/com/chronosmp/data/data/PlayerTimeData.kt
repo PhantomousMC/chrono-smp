@@ -19,6 +19,7 @@ data class PlayerTimeData(
         var remainingTimeSeconds: Long,
         @Contextual var lastWeeklyAllotment: Instant,
         var username: String = "",
+        var bountyAmountSeconds: Long = 60, // 60 = test value
         val pendingNotifications: MutableList<String> = mutableListOf()
 ) {
     /**

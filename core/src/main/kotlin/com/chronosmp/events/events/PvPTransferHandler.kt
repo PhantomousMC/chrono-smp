@@ -41,6 +41,11 @@ class PvPTransferHandler(
                                 killer.sendMessage("§a+$transferredFormatted from killing ${victim.name}! Total: ${result.killerRemaining}$happyHourSuffix")
                                 victim.sendMessage("§c-$transferredFormatted lost to ${killer.name}! Remaining: ${result.victimRemaining}$happyHourSuffix")
 
+                                if (result.bountyPaid > 0) {
+                                    val bountyFormatted = formatSeconds(result.bountyPaid)
+                                    killer.sendMessage("§6✦ Bounty claimed! +$bountyFormatted for killing ${victim.name}!")
+                                }
+
                                 logger.info(
                                         "PvP transfer: ${killer.name} killed ${victim.name}, " +
                                                 "transferred $transferredFormatted (${result.transferred}s)" +

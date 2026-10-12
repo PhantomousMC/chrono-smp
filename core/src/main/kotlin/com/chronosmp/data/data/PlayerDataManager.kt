@@ -201,6 +201,8 @@ class PlayerDataManager(
      * @param multiplier Multiplier for the transfer amount (e.g. 2.0 during rush hour)
      * @return PvPTransferResult with details about the transfer
      */
+
+    // TO DO: Add bounty
     fun transferQuotaOnPvPKill(victimUuid: UUID, killerUuid: UUID, multiplier: Double = 1.0): PvPTransferResult {
         val victimData = get(victimUuid) ?: return PvPTransferResult.NoData
         val killerData = get(killerUuid) ?: return PvPTransferResult.NoData
@@ -208,12 +210,19 @@ class PlayerDataManager(
         val baseAmount = config.pvpTransferSeconds
         val transferAmount = (baseAmount * multiplier).toLong()
         val transferred = victimData.transferQuotaTo(killerData, transferAmount)
+        val bounty = victimData.bountyAmountSeconds
 
-        return if (transferred > 0) {
+        if (victimData.bountyAmountSeconds > 0) {
+            killerData.remainingTimeSeconds += bounty
+            victimData.bountyAmountSeconds = 0
+        }
+
+        return if (transferred > 0 || bounty > 0) {
             PvPTransferResult.Success(
                     transferred = transferred,
                     victimRemaining = victimData.formatRemainingTime(),
-                    killerRemaining = killerData.formatRemainingTime()
+                    killerRemaining = killerData.formatRemainingTime(),
+                    bountyPaid = bounty
             )
         } else {
             PvPTransferResult.NoTimeAvailable
@@ -238,7 +247,8 @@ sealed class PvPTransferResult {
     data class Success(
             val transferred: Long,
             val victimRemaining: String,
-            val killerRemaining: String
+            val killerRemaining: String,
+            val bountyPaid: Long = 0
     ) : PvPTransferResult()
     object NoTimeAvailable : PvPTransferResult()
     object NoData : PvPTransferResult()
