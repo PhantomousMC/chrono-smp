@@ -183,7 +183,7 @@ class ChronoCommand(
             return 0
         }
 
-        val transferred = senderData.transferQuotaTo(targetData, amountSeconds)
+        val transferred = senderData.transferToBounty(targetData, amountSeconds)
 
         dataManager.save()
         return 1

@@ -115,6 +115,19 @@ data class PlayerTimeData(
         return actualTransfer
     }
 
+    /**
+     * Spend quota to raise another player's bounty (used by /chrono bounty)
+     * @param other The player whose bounty to raise
+     * @param amount Amount of quota to spend in seconds
+     * @return actual amount spent (may be less than requested if not enough quota)
+     */
+    fun transferToBounty(other: PlayerTimeData, amount: Long): Long {
+        val actualTransfer = minOf(remainingTimeSeconds, amount)
+        remainingTimeSeconds -= actualTransfer
+        other.bountyAmountSeconds += actualTransfer
+        return actualTransfer
+    }
+
     /** Format remaining time as HH:MM:SS */
     fun formatRemainingTime(): String {
         val hours = remainingTimeSeconds / 3600
