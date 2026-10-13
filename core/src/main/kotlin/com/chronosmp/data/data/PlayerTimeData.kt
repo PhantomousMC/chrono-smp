@@ -19,6 +19,7 @@ data class PlayerTimeData(
         var remainingTimeSeconds: Long,
         @Contextual var lastWeeklyAllotment: Instant,
         var username: String = "",
+        var bountyAmountSeconds: Long = 60, // 60 = test value
         val pendingNotifications: MutableList<String> = mutableListOf()
 ) {
     /**
@@ -114,11 +115,32 @@ data class PlayerTimeData(
         return actualTransfer
     }
 
+    /**
+     * Spend quota to raise another player's bounty (used by /chrono bounty)
+     * @param other The player whose bounty to raise
+     * @param amount Amount of quota to spend in seconds
+     * @return actual amount spent (may be less than requested if not enough quota)
+     */
+    fun transferToBounty(other: PlayerTimeData, amount: Long): Long {
+        val actualTransfer = minOf(remainingTimeSeconds, amount)
+        remainingTimeSeconds -= actualTransfer
+        other.bountyAmountSeconds += actualTransfer
+        return actualTransfer
+    }
+
     /** Format remaining time as HH:MM:SS */
     fun formatRemainingTime(): String {
         val hours = remainingTimeSeconds / 3600
         val minutes = (remainingTimeSeconds % 3600) / 60
         val seconds = remainingTimeSeconds % 60
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds)
+    }
+
+    /** Format current bounty as HH:MM:SS */
+    fun formatBountyTime(): String {
+        val hours = bountyAmountSeconds / 3600
+        val minutes = (bountyAmountSeconds % 3600) / 60
+        val seconds = bountyAmountSeconds % 60
         return String.format("%02d:%02d:%02d", hours, minutes, seconds)
     }
 
