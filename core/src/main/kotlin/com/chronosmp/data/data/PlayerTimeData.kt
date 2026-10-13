@@ -136,6 +136,14 @@ data class PlayerTimeData(
         return String.format("%02d:%02d:%02d", hours, minutes, seconds)
     }
 
+    /** Format current bounty as HH:MM:SS */
+    fun formatBountyTime(): String {
+        val hours = bountyAmountSeconds / 3600
+        val minutes = (bountyAmountSeconds % 3600) / 60
+        val seconds = bountyAmountSeconds % 60
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds)
+    }
+
     /**
      * Check if an advancement has already been awarded this session.
      * @param advancementId Advancement identifier

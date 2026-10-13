@@ -31,6 +31,9 @@ permissions:
   chrono.use.list:
     description: List player quota balances
     default: true
+  chrono.use.bountylist:
+    description: List active player bounties
+    default: true
   chrono.use.transfer:
     description: Transfer quota to another player
     default: true

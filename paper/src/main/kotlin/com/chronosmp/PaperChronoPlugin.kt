@@ -100,10 +100,19 @@ class PaperChronoPlugin : JavaPlugin(), Listener {
             "start" -> if (args.size == 1) {
                 handled { ChronoSMP.chronoCommand.executeStart(executor, server) }
             } else handled { ChronoSMP.chronoCommand.executeHelp(executor) }
-            //Work in progress
-            "bounty" -> if (args.size == 1) {
-                handled { ChronoSMP.chronoCommand.executeBounty(executor, server) }
-            } else handled { ChronoSMP.chronoCommand.executeHelp(executor) }
+            "bounty" -> {
+                if (player == null) {
+                    sender.sendMessage("§cBounty can only be used by a player.")
+                    true
+                } else {
+                    val amountSeconds = args.getOrNull(2)?.let(TimeAmount::parseSeconds)
+                    val anonymous = args.getOrNull(3)?.equals("anonymous", true) ?: false
+                    val validArgCount = args.size == 3 || (args.size == 4 && anonymous)
+                    if (!validArgCount || amountSeconds == null || amountSeconds <= 0) {
+                        handled { ChronoSMP.chronoCommand.executeHelp(executor) }
+                    } else handled { ChronoSMP.chronoCommand.executeBounty(player, args[1], server, amountSeconds, anonymous) }
+                }
+            }
             "stop" -> if (args.size == 1) {
                 handled { ChronoSMP.chronoCommand.executeStop(executor) }
             } else handled { ChronoSMP.chronoCommand.executeHelp(executor) }
@@ -126,6 +135,15 @@ class PaperChronoPlugin : JavaPlugin(), Listener {
                     1 -> handled { ChronoSMP.chronoCommand.executeList(executor, server, "all") }
                     2 -> if (args[1].equals("all", true) || args[1].equals("online", true)) {
                         handled { ChronoSMP.chronoCommand.executeList(executor, server, args[1]) }
+                    } else handled { ChronoSMP.chronoCommand.executeHelp(executor) }
+                    else -> handled { ChronoSMP.chronoCommand.executeHelp(executor) }
+                }
+            }
+            "bountylist" -> {
+                when (args.size) {
+                    1 -> handled { ChronoSMP.chronoCommand.executeBountyList(executor, server, "all") }
+                    2 -> if (args[1].equals("all", true) || args[1].equals("online", true)) {
+                        handled { ChronoSMP.chronoCommand.executeBountyList(executor, server, args[1]) }
                     } else handled { ChronoSMP.chronoCommand.executeHelp(executor) }
                     else -> handled { ChronoSMP.chronoCommand.executeHelp(executor) }
                 }
@@ -201,13 +219,13 @@ class PaperChronoPlugin : JavaPlugin(), Listener {
 
         val query = args.lastOrNull()?.lowercase() ?: ""
         val suggestions = when (args.size) {
-            1 -> listOf("start", "stop", "reset", "balance", "list", "transfer", "add", "remove", "set", "rushhour", "reload", "help", "bounty")
+            1 -> listOf("start", "stop", "reset", "balance", "list", "bountylist", "transfer", "add", "remove", "set", "rushhour", "reload", "help", "bounty")
             2 -> when (args[0].lowercase()) {
                 "balance", "transfer", "add", "remove", "set", "bounty" -> {
                     (Bukkit.getOnlinePlayers().map { it.name } + ChronoSMP.dataManager.getAll().mapNotNull { it.username.ifBlank { null } })
                         .distinct()
                 }
-                "list" -> listOf("all", "online")
+                "list", "bountylist" -> listOf("all", "online")
                 "rushhour" -> listOf("start", "end")
                 else -> emptyList()
             }
@@ -216,6 +234,10 @@ class PaperChronoPlugin : JavaPlugin(), Listener {
                     "start" -> mutableListOf("1", "30", "60", "120").sortedBy { it.toLong() }
                     else -> emptyList()
                 }
+                else -> emptyList()
+            }
+            4 -> when (args[0].lowercase()) {
+                "bounty" -> listOf("anonymous")
                 else -> emptyList()
             }
             else -> emptyList()
